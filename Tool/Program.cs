@@ -7,7 +7,7 @@ namespace SyncTool.Tool
     {
         internal static DateTime ProgramStartDate { get; private set; }
 
-        internal static string LogFolderPath { get; private set; }
+        internal static string LogsFolderPath { get; private set; }
 
         internal static string SourceFolderPath { get; private set; }
 
@@ -21,19 +21,49 @@ namespace SyncTool.Tool
 
             if (args.Length > 0)
             {
-                if (args.CheckArgument("log", out string log) && Extensions.CheckDirectory(log))
-                    LogFolderPath = log;
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (!args[i].StartsWith("--"))
+                        continue;
 
-                if (args.CheckArgument("source", out string source) && Extensions.CheckDirectory(source))
-                    SourceFolderPath = source;
+                    string argValue = args[i + 1];
+                    switch (args[i].ToLower())
+                    {
+                        case "--logs":
+                            {
+                                if (Extensions.CheckDirectory(argValue))
+                                    LogsFolderPath = argValue;
 
-                if (args.CheckArgument("replica", out string replica) && Extensions.CheckDirectory(replica))
-                    ReplicaFolderPath = replica;
+                                break;
+                            }
 
-                if (args.CheckArgument("interval", out string interval) && Extensions.CheckInterval(interval, out long seconds))
-                    SyncInterval = TimeSpan.FromSeconds(seconds);
+                        case "--source":
+                            {
+                                if (Extensions.CheckDirectory(argValue))
+                                    SourceFolderPath = argValue;
 
-                if (LogFolderPath is null || SourceFolderPath is null || ReplicaFolderPath is null || SyncInterval.TotalSeconds <= 0)
+                                break;
+                            }
+
+                        case "--replica":
+                            {
+                                if (Extensions.CheckDirectory(argValue))
+                                    ReplicaFolderPath = argValue;
+
+                                break;
+                            }
+
+                        case "--interval":
+                            {
+                                if (Extensions.CheckInterval(argValue, out long seconds))
+                                    SyncInterval = TimeSpan.FromSeconds(seconds);
+
+                                break;
+                            }
+                    }
+                }
+
+                if (LogsFolderPath is null || SourceFolderPath is null || ReplicaFolderPath is null || SyncInterval.TotalSeconds <= 0)
                 {
                     Extensions.LogAction("Settings are not fully defined!");
                     Console.ReadLine();
@@ -46,22 +76,22 @@ namespace SyncTool.Tool
             SyncSettings settings = Settings.SyncSettings;
             if (settings is not null)
             {
+                Extensions.LogAction(JsonConvert.SerializeObject(settings));
                 bool readSettings = (bool)ReadUserInput("I found some saved settings. Do you want me to load them? Type 'true' or 'false'.", InputType.Bool);
+
                 if (readSettings)
                 {
-                    LogFolderPath = settings.LogFolderPath;
+                    LogsFolderPath = settings.LogsFolderPath;
                     SourceFolderPath = settings.SourceFolderPath;
                     ReplicaFolderPath = settings.ReplicaFolderPath;
                     SyncInterval = settings.SyncInterval;
 
-                    Extensions.LogAction("Settings have been loaded.");
-                    Extensions.LogAction(JsonConvert.SerializeObject(settings));
+                    Extensions.LogAction("Settings have been loaded.");       
                     goto StartSync;
                 }
-                else Settings.DeleteSettings();
             }
 
-            LogFolderPath = ReadUserInput("Please provide the log folder path:", InputType.Path).ToString();
+            LogsFolderPath = ReadUserInput("Please provide the log folder path:", InputType.Path).ToString();
             SourceFolderPath = ReadUserInput("Please provide the source folder path:", InputType.Path).ToString();
             ReplicaFolderPath = ReadUserInput("Please provide the replica folder path:", InputType.Path).ToString();
             SyncInterval = TimeSpan.FromSeconds((long)ReadUserInput("Please provide the sync interval (e.g., 10s, 5m, 2h). Supported units: s = seconds, m = minutes, h = hours, d = days, M = months, y = years.", InputType.Time));
@@ -69,14 +99,17 @@ namespace SyncTool.Tool
             bool saveSettings = (bool)ReadUserInput("Do you want to save these preferences to the settings file? Please enter 'true' or 'false'.", InputType.Bool);
             if (saveSettings)
             {
-                Settings.SaveSyncSettings(new SyncSettings
+                SyncSettings newSettings = new()
                 {
-                    LogFolderPath = LogFolderPath,
+                    LogsFolderPath = LogsFolderPath,
                     SourceFolderPath = SourceFolderPath,
                     ReplicaFolderPath = ReplicaFolderPath,
                     SyncInterval = SyncInterval
-                });
+                };
 
+                Settings.SaveSyncSettings(newSettings);
+                
+                Extensions.LogAction(JsonConvert.SerializeObject(newSettings));
                 Extensions.LogAction("Settings have been saved to the file in the root directory.");
             }
 

@@ -7,19 +7,6 @@ namespace SyncTool.Features
     {
         internal static string ToBackSlashes(this string input) => input?.Replace('/', '\\');
 
-        internal static bool CheckArgument(this string[] args, string arg, out string result)
-        {
-            string userArg = args.FirstOrDefault(a => a.Contains($"{arg}=", StringComparison.OrdinalIgnoreCase));
-            if (userArg is null)
-            {
-                result = null;
-                return false;
-            }
-
-            result = userArg.Split('=')[1];
-            return true;
-        }
-
         internal static string RemoveMatchFromStart(this string source, string prefix)
         {
             if (prefix.Length > source.Length)
@@ -105,10 +92,10 @@ namespace SyncTool.Features
             string log = $"[{DateTime.UtcNow:dd.MM.yyyy HH:mm:ss.fff}] {action}";
 
             Console.WriteLine(log);
-            if (Program.LogFolderPath is null)
+            if (Program.LogsFolderPath is null)
                 return;
 
-            File.AppendAllLines(Path.Combine(Program.LogFolderPath, $"Log {Program.ProgramStartDate:dd-MM-yyyy HH.mm.ss}.txt"), [log]);
+            File.AppendAllLines(Path.Combine(Program.LogsFolderPath, $"Log {Program.ProgramStartDate:dd-MM-yyyy HH.mm.ss}.txt"), [log]);
         }
     }
 }
