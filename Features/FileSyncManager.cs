@@ -1,29 +1,9 @@
-﻿using System.Security.Cryptography;
-
-namespace SyncTool.Features
+﻿namespace SyncTool.Features
 {
-    public class FileSyncManager
+    public class FileSyncManager(string source, string replica)
     {
-        public FileRefCollection SourceFiles { get; set; }
-        public FileRefCollection ReplicaFiles { get; set; }
-
-        public FileSyncManager(string source, string replica)
-        {
-            if (source is null)
-                throw new NullReferenceException($"{nameof(source)} cannot be null");
-            
-            if (replica is null)
-                throw new NullReferenceException($"{nameof(replica)} cannot be null");
-
-            if (!Directory.Exists(source))
-                throw new InvalidOperationException($"Source directory \"{source}\" does not exist");
-
-            if (!Directory.Exists(replica))
-                throw new InvalidOperationException($"Target directory \"{replica}\" does not exist");
-
-            SourceFiles = new FileRefCollection(source);
-            ReplicaFiles = new FileRefCollection(replica);
-        }
+        public FileRefCollection SourceFiles { get; set; } = new FileRefCollection(source);
+        public FileRefCollection ReplicaFiles { get; set; } = new FileRefCollection(replica);
 
         public void Sync()
         {
@@ -33,17 +13,17 @@ namespace SyncTool.Features
                 string sourcePath = Path.Combine(SourceFiles.Path, file);
                 string replicaPath = Path.Combine(ReplicaFiles.Path, file);
 
-                Extensions.LogAction(File.Exists(replicaPath) ? $"File {replicaPath} was overwritten!" : $"File {sourcePath} was copyed to {replicaPath}!");
+                Extensions.LogAction(File.Exists(replicaPath) ? $"The file at '{replicaPath}' was overwritten." : $"The file from '{sourcePath}' was copied to '{replicaPath}'.");
                 File.Copy(sourcePath, replicaPath, true);
             }
 
-            IEnumerable<string> inTargetNotSource = ReplicaFiles.Location.Keys.Except(SourceFiles.Location.Keys).Select(f => ReplicaFiles.Location[f].RelativePath);
-            foreach (string file in inTargetNotSource.ToList())
+            IEnumerable<string> inReplicaNotSource = ReplicaFiles.Location.Keys.Except(SourceFiles.Location.Keys).Select(f => ReplicaFiles.Location[f].RelativePath);
+            foreach (string file in inReplicaNotSource.ToList())
             {
                 string replicaPath = Path.Combine(ReplicaFiles.Path, file);
                 
                 File.Delete(replicaPath);
-                Extensions.LogAction($"File {replicaPath} was deleted!");
+                Extensions.LogAction($"File '{replicaPath}' has been deleted!");
             }
         }
     }
@@ -79,21 +59,12 @@ namespace SyncTool.Features
         public FileRef(FileInfo fileInfo, string relativeTo)
         {
             File = fileInfo;
-            Hash = GenerateHash();
+            Hash = fileInfo.GenerateHash();
 
             string filePath = fileInfo.FullName.ToBackSlashes();
-            string filePathWithoutRelativeDirectory = filePath.RemoveMatchFromStart(relativeTo.ToBackSlashes(), false);
+            string filePathWithoutRelativeDirectory = filePath.RemoveMatchFromStart(relativeTo.ToBackSlashes());
 
             RelativePath = filePathWithoutRelativeDirectory.Trim('\\');
-        }
-
-        private string GenerateHash()
-        {
-            using MD5 md5 = MD5.Create();
-            using FileStream stream = File.OpenRead();
-
-            byte[] hash = md5.ComputeHash(stream);
-            return Convert.ToHexStringLower(hash);
         }
     }
 }
