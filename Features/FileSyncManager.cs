@@ -10,8 +10,9 @@
             IEnumerable<string> inSourceNotReplica = SourceFiles.LocationAndContent.Keys.Except(ReplicaFiles.LocationAndContent.Keys).Select(f => SourceFiles.LocationAndContent[f].RelativePath);
             foreach (string file in inSourceNotReplica.ToList())
             {
-                string sourcePath = Path.Combine(SourceFiles.Path, file);
-                string replicaPath = Path.Combine(ReplicaFiles.Path, file);
+                string
+                    sourcePath = Path.Combine(SourceFiles.Path, file),
+                    replicaPath = Path.Combine(ReplicaFiles.Path, file);
 
                 Extensions.LogAction(File.Exists(replicaPath) ? $"The file at '{replicaPath}' was overwritten." : $"The file from '{sourcePath}' was copied to '{replicaPath}'.");
                 File.Copy(sourcePath, replicaPath, true);
@@ -31,7 +32,6 @@
     public class FileRefCollection
     {
         public string Path { get; init; }
-
         public Dictionary<string, FileRef> Location { get; init; } = [];
         public Dictionary<string, FileRef> LocationAndContent { get; init; } = [];
 
@@ -51,9 +51,7 @@
     public class FileRef
     {
         public FileInfo File { get; init; }
-
         public string RelativePath { get; set; }
-
         public string Hash { get; set; }
 
         public FileRef(FileInfo fileInfo, string relativeTo)
